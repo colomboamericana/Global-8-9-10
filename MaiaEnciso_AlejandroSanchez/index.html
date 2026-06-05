@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Distribution Hub & Parameter Fitter</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jstat@1.9.6/dist/jstat.min.js"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen font-sans pb-12">
+
+    <header class="bg-gray-800 border-b border-gray-700 py-6 px-8 shadow-md mb-8 flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-bold text-indigo-400">Distribution Hub</h1>
+            <p class="text-sm text-gray-400 mt-1">Interactive PDFs, Probability Calculators, & AI Parameter Fitting</p>
+        </div>
+        <div class="flex flex-wrap gap-3 items-center justify-end">
+            <a href="#" id="github-link" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg font-medium text-sm transition shadow">
+                🚀 View on GitHub Pages
+            </a>
+            <a href="https://gemini.google.com/share/84d8b663fcb7" target="_blank" rel="noopener noreferrer" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium text-sm transition shadow">
+                🤖 AI Conversation (Gemini)
+            </a>
+            <a href="https://claude.ai/share/9847c0d4-ab48-4a24-9c84-ebf16b36cdf4" target="_blank" rel="noopener noreferrer" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-medium text-sm transition shadow">
+                💬 AI Conversation (Claude)
+            </a>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <section class="lg:col-span-7 bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
+            <h2 class="text-xl font-semibold text-indigo-300 mb-4 border-b border-gray-700 pb-2">1. Interactive PDF Explorer</h2>
+            
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-400 mb-2">Select Distribution</label>
+                <select id="dist-select" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-indigo-500">
+                    <option value="uniform">Uniform Distribution</option>
+                    <option value="triangular">Triangular Distribution</option>
+                    <option value="linear">Linear Distribution (Slope-based)</option>
+                    <option value="piecewise">Piecewise Distribution</option>
+                    <option value="normal" selected>Normal Distribution</option>
+                </select>
+            </div>
+
+            <div id="parameters-container" class="grid grid-cols-2 gap-4 mb-6">
+                </div>
+
+            <div class="bg-gray-750 p-4 rounded-lg border border-gray-700 mb-6">
+                <h3 class="text-sm font-semibold text-gray-300 mb-3">Probability Bounds & Shading</h3>
+                <div class="grid grid-cols-3 gap-4 mb-3">
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Calculation Type</label>
+                        <select id="prob-type" class="w-full bg-gray-700 text-xs border border-gray-600 rounded p-1.5 text-white">
+                            <option value="below">Below X</option>
+                            <option value="above">Above X</option>
+                            <option value="between" selected>Between X1 and X2</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label id="lbl-x1" class="block text-xs text-gray-400 mb-1">X / X1</label>
+                        <input type="number" id="prob-x1" value="-1" step="0.1" class="w-full bg-gray-700 text-xs border border-gray-600 rounded p-1.5 text-white">
+                    </div>
+                    <div id="div-x2">
+                        <label class="block text-xs text-gray-400 mb-1">X2</label>
+                        <input type="number" id="prob-x2" value="1" step="0.1" class="w-full bg-gray-700 text-xs border border-gray-600 rounded p-1.5 text-white">
+                    </div>
+                </div>
+                <div class="text-right">
+                    <span class="text-sm font-medium text-gray-400">Calculated Probability:</span>
+                    <span id="prob-result" class="text-lg font-bold text-emerald-400 ml-2">0.0000</span>
+                </div>
+            </div>
+
+            <div class="relative h-80 bg-gray-900 p-2 rounded-lg border border-gray-700">
+                <canvas id="calcChart"></canvas>
+            </div>
+        </section>
+
+        <section class="lg:col-span-5 bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700 flex flex-col justify-between">
+            <div>
+                <h2 class="text-xl font-semibold text-pink-400 mb-4 border-b border-gray-700 pb-2">2. AI-Assisted Parameter Fitter</h2>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-400 mb-2">Upload Data CSV/Txt or Paste Numbers</label>
+                    <textarea id="data-input" rows="3" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-xs font-mono text-white mb-2" placeholder="Paste comma or newline separated numbers... e.g., 12.3, 14.5, 9.1"></textarea>
+                    <input type="file" id="file-upload" accept=".csv,.txt" class="block w-full text-xs text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-pink-650 file:text-white hover:file:bg-pink-500 cursor-pointer">
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-400 mb-2">Target Model to Fit</label>
+                    <select id="fit-select" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-sm text-white">
+                        <option value="uniform">Uniform Distribution</option>
+                        <option value="triangular">Triangular Distribution</option>
+                        <option value="linear">Linear Distribution</option>
+                        <option value="piecewise">Piecewise Uniform (2-Interval)</option>
+                        <option value="normal" selected>Normal Distribution</option>
+                    </select>
+                </div>
+
+                <button id="btn-fit" class="w-full bg-pink-600 hover:bg-pink-500 text-white font-medium py-2 rounded-lg transition mb-6 shadow">
+                    Compute & Fit Model parameters
+                </button>
+
+                <div id="fit-results" class="hidden space-y-4">
+                    <div class="bg-gray-750 p-3 rounded border border-gray-700">
+                        <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Estimated Parameters</h4>
+                        <p id="fit-params" class="text-sm font-mono text-pink-300 mt-1"></p>
+                    </div>
+
+                    <div class="relative h-64 bg-gray-900 p-2 rounded-lg border border-gray-700">
+                        <canvas id="fitChart"></canvas>
+                    </div>
+
+                    <div class="bg-gray-750 p-3 rounded border border-gray-700">
+                        <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider">AI Analysis & Interpretation</h4>
+                        <p id="fit-interpretation" class="text-xs text-gray-300 mt-1 leading-relaxed"></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+      // Setup current URL to dynamically serve as GitHub pages href link if relevant
+document.getElementById('github-link').href = window.location.href;
+
+// Initialize Global Charts Variables
+let calcChart = null;
+let fitChart = null;
+
+// Configuration Mapping for Parameters Setup
+const distParams = {
+    uniform: [{id:'u-a', label:'Lower Endpoint (a)', val: 0}, {id:'u-b', label:'Upper Endpoint (b)', val: 10}],
+    triangular: [{id:'t-a', label:'Lower (a)', val: 0}, {id:'t-b', label:'Upper (b)', val: 10}, {id:'t-c', label:'Mode (c)', val: 4}],
+    linear: [{id:'l-a', label:'Interval Start (a)', val: 0}, {id:'l-b', label:'Interval End (b)', val: 5}, {id:'l-m', label:'Slope Direction (1=Inc, -1=Dec)', val: 1}],
+    piecewise: [{id:'p-m', label:'Split Threshold', val: 5}], 
+    normal: [{id:'n-mu', label:'Mean (μ)', val: 0}, {id:'n-sigma', label:'Std Dev (σ)', val: 1}]
+};
+
+// --- SELECTION ARCHITECTURE & DOM GENERATION ---
+const distSelect = document.getElementById('dist-select');
+const paramContainer = document.getElementById('parameters-container');
+const probType = document.getElementById('prob-type');
+const probX1 = document.getElementById('prob-x1');
+const probX2 = document.getElementById('prob-x2');
+const divX2 = document.getElementById('div-x2');
+
+function renderInputs() {
+    const dist = distSelect.value;
+    paramContainer.innerHTML = '';
+    distParams[dist].forEach(p => {
+        const div = document.createElement('div');
+        div.innerHTML = `
+            <label class="block text-xs text-gray-400 mb-1">${p.label}</label>
+            <input type="number" id="${p.id}" value="${p.val}" step="0.1" class="w-full bg-gray-750 border border-gray-600 rounded p-1.5 text-sm text-white param-input">
+        `;
+        paramContainer.appendChild(div);
+    });
+    
+    document.querySelectorAll('.param-input').forEach(el => el.addEventListener('input', () => updateCalculator()));
+    updateCalculator();
+}
+
+distSelect.addEventListener('change', renderInputs);
+probType.addEventListener('change', () => {
+    divX2.style.display = probType.value === 'between' ? 'block' : 'none';
+    updateCalculator();
+});
+[probX1, probX2].forEach(el => el.addEventListener('input', () => updateCalculator()));
+
+// --- MATH FUNCTIONS & CALCULATIONS ---
+function getDistributionMath() {
+    const type = distSelect.value;
+    let pdf, cdf, minX, maxX;
+
+    if (type === 'uniform') {
+        const a = parseFloat(document.getElementById('u-a').value);
+        const b = parseFloat(document.getElementById('u-b').value);
+        minX = a - 2; maxX = b + 2;
+        pdf = (x) => (x >= a && x <= b) ? 1 / (b - a) : 0;
+        cdf = (x) => x < a ? 0 : (x > b ? 1 : (x - a) / (b - a));
+    } else if (type === 'triangular') {
+        const a = parseFloat(document.getElementById('t-a').value);
+        const b = parseFloat(document.getElementById('t-b').value);
+        const c = parseFloat(document.getElementById('t-c').value);
+        minX = a - 2; maxX = b + 2;
+        pdf = (x) => {
+            if (x < a || x > b) return 0;
+            if (x < c) return (2 * (x - a)) / ((b - a) * (c - a));
+            if (x === c) return 2 / (b - a);
+            return (2 * (b - x)) / ((b - a) * (b - c));
+        };
+        cdf = (x) => {
+            if (x < a) return 0;
+            if (x > b) return 1;
+            if (x <= c) return Math.pow(x - a, 2) / ((b - a) * (c - a));
+            return 1 - Math.pow(b - x, 2) / ((b - a) * (b - c));
+        };
+    } else if (type === 'linear') {
+        const a = parseFloat(document.getElementById('l-a').value);
+        const b = parseFloat(document.getElementById('l-b').value);
+        const dir = parseFloat(document.getElementById('l-m').value) >= 0 ? 1 : -1;
+        minX = a - 1; maxX = b + 1;
+        const h = 2 / (b - a);
+        pdf = (x) => {
+            if (x < a || x > b) return 0;
+            return dir === 1 ? (h / (b - a)) * (x - a) : h - (h / (b - a)) * (x - a);
+        };
+        cdf = (x) => {
+            if (x < a) return 0;
+            if (x > b) return 1;
+            const pct = (x - a) / (b - a);
+            return dir === 1 ? pct * pct : 1 - Math.pow(1 - pct, 2);
+        };
+    } else if (type === 'piecewise') {
+        const m = parseFloat(document.getElementById('p-m').value);
+        const a = 0, b = 10;
+        minX = -1; maxX = 11;
+        const h1 = 0.6 / (m - a);
+        const h2 = 0.4 / (b - m);
+        pdf = (x) => {
+            if (x >= a && x <= m) return h1;
+            if (x > m && x <= b) return h2;
+            return 0;
+        };
+        cdf = (x) => {
+            if (x < a) return 0;
+            if (x <= m) return ((x - a) / (m - a)) * 0.6;
+            if (x <= b) return 0.6 + ((x - m) / (b - m)) * 0.4;
+            return 1;
+        };
+    } else if (type === 'normal') {
+        const mu = parseFloat(document.getElementById('n-mu').value);
+        const sigma = Math.max(0.1, parseFloat(document.getElementById('n-sigma').value));
+        minX = mu - 4 * sigma; maxX = mu + 4 * sigma;
+        pdf = (x) => jStat.normal.pdf(x, mu, sigma);
+        cdf = (x) => jStat.normal.cdf(x, mu, sigma);
+    }
+
+    return { pdf, cdf, minX, maxX };
+}
+
+// --- UPDATE CALCULATOR VISUALS & CALCULATIONS ---
+function updateCalculator(preventChartRebuild = false) {
+    const { pdf, cdf, minX, maxX } = getDistributionMath();
+    
+    const x1 = parseFloat(probX1.value);
+    const x2 = parseFloat(probX2.value);
+    const type = probType.value;
+
+    let numericProb = 0;
+    let shadeMin = 0, shadeMax = 0;
+
+    if (type === 'below') {
+        numericProb = cdf(x1);
+        shadeMin = minX; shadeMax = x1;
+    } else if (type === 'above') {
+        numericProb = 1 - cdf(x1);
+        shadeMin = x1; shadeMax = maxX;
+    } else if (type === 'between') {
+        numericProb = Math.max(0, cdf(x2) - cdf(x1));
+        shadeMin = Math.min(x1, x2); shadeMax = Math.max(x1, x2);
+    }
+
+    document.getElementById('prob-result').innerText = numericProb.toFixed(4);
+
+    // If we only want to update the shading boxes without resetting the whole canvas state during hovers
+    if (preventChartRebuild && calcChart) {
+        calcChart.options.plugins.annotation.annotations.box1.xMin = shadeMin;
+        calcChart.options.plugins.annotation.annotations.box1.xMax = shadeMax;
+        calcChart.update('none'); // silent rapid update framework
+        return;
+    }
+
+    const steps = 150;
+    const stepSize = (maxX - minX) / steps;
+    const dataPoints = [];
+
+    for (let i = 0; i <= steps; i++) {
+        const curX = minX + (i * stepSize);
+        dataPoints.push({ x: curX, y: pdf(curX) });
+    }
+
+    if (calcChart) calcChart.destroy();
+
+    const ctx = document.getElementById('calcChart').getContext('2d');
+    calcChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            datasets: [{
+                label: 'Probability Density Function (PDF)',
+                data: dataPoints,
+                borderColor: '#818cf8',
+                borderWidth: 2.5,
+                pointRadius: 0,
+                fill: false,
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            // Track mouse interactions
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            onHover: (event, chartElements) => {
+                // Get data coordinates beneath mouse pointer
+                const points = calcChart.getElementsAtEventForMode(event, 'index', { intersect: false }, true);
+                if (points.length) {
+                    const index = points[0].index;
+                    const hoveredX = calcChart.data.datasets[0].data[index].x;
+                    
+                    // Bind the mouse coordinate natively to your calculation forms!
+                    if (probType.value === 'between') {
+                        // In 'between' mode, tether the mouse to bound X2
+                        probX2.value = hoveredX.toFixed(2);
+                    } else {
+                        // In below/above modes, tether mouse to single tracking input bound X1
+                        probX1.value = hoveredX.toFixed(2);
+                    }
+                    // Trigger immediate internal shading recalculation
+                    updateCalculator(true);
+                }
+            },
+            scales: {
+                x: { type: 'linear', position: 'bottom', grid: { color: '#374151' } },
+                y: { beginAtZero: true, grid: { color: '#374151' } }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        title: (items) => `X: ${parseFloat(items[0].raw.x).toFixed(2)}`,
+                        label: (item) => `Density (PDF): ${parseFloat(item.raw.y).toFixed(4)}`
+                    }
+                },
+                annotation: {
+                    annotations: {
+                        box1: {
+                            type: 'box',
+                            xMin: shadeMin,
+                            xMax: shadeMax,
+                            backgroundColor: 'rgba(16, 185, 129, 0.25)',
+                            borderColor: 'transparent',
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// ================= C9 DATA PROCESSING ENGINE & INTERPRETATION =================
+const btnFit = document.getElementById('btn-fit');
+const dataInput = document.getElementById('data-input');
+const fileUpload = document.getElementById('file-upload');
+const fitSelect = document.getElementById('fit-select');
+
+fileUpload.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(evt) { dataInput.value = evt.target.result; };
+    reader.readAsText(file);
+});
+
+btnFit.addEventListener('click', () => {
+    const rawData = dataInput.value.replace(/[\n\r,]+/g, ' ').trim().split(/\s+/).map(Number).filter(n => !isNaN(n));
+    if (rawData.length < 3) {
+        alert("Please input at least 3 valid numeric values to build a comprehensive fit distribution graph.");
+        return;
+    }
+
+    const model = fitSelect.value;
+    const n = rawData.length;
+    const min = Math.min(...rawData);
+    const max = Math.max(...rawData);
+    const mean = jStat.mean(rawData);
+    const stdev = jStat.stdev(rawData, true);
+
+    let estParamsText = "";
+    let fittedPdfFunc = (x) => 0;
+    let aiInterpretation = "";
+
+    if (model === 'uniform') {
+        const a = min; const b = max;
+        estParamsText = `Lower (a) = ${a.toFixed(2)} | Upper (b) = ${b.toFixed(2)}`;
+        fittedPdfFunc = (x) => (x >= a && x <= b) ? 1 / (b - a) : 0;
+        aiInterpretation = `The Uniform model creates boundaries perfectly at bounds [${a.toFixed(2)}, ${b.toFixed(2)}]. If the real system produces elements uniform-density across this domain without clumping, this provides a sound baseline estimate.`;
+    } 
+    else if (model === 'triangular') {
+        const a = min; const b = max;
+        const c = 3 * mean - a - b;
+        const constrainedC = Math.max(a, Math.min(b, c));
+        estParamsText = `Lower (a) = ${a.toFixed(2)} | Upper (b) = ${b.toFixed(2)} | Calculated Mode (c) = ${constrainedC.toFixed(2)}`;
+        fittedPdfFunc = (x) => {
+            if (x < a || x > b) return 0;
+            if (x < constrainedC) return (2 * (x - a)) / ((b - a) * (constrainedC - a));
+            return (2 * (b - x)) / ((b - a) * (b - constrainedC));
+        };
+        aiInterpretation = `The Triangular distribution models an estimated peak centered at ${constrainedC.toFixed(2)}. It serves well for bounded arrays showing singular central clustering trends.`;
+    } 
+    else if (model === 'linear') {
+        const a = min; const b = max;
+        const mid = (a + b) / 2;
+        const direction = mean >= mid ? "Increasing" : "Decreasing";
+        estParamsText = `Type = ${direction} Linear | Range: [${a.toFixed(2)}, ${b.toFixed(2)}]`;
+        const h = 2 / (b - a);
+        fittedPdfFunc = (x) => {
+            if (x < a || x > b) return 0;
+            const pct = (x - a) / (b - a);
+            return mean >= mid ? (h * pct) : h * (1 - pct);
+        };
+        aiInterpretation = `A ${direction.toLowerCase()} linear slope was derived based on the average placement (${mean.toFixed(2)}) relative to the raw range center.`;
+    } 
+    else if (model === 'piecewise') {
+        const midPoint = (min + max) / 2;
+        const countLeft = rawData.filter(x => x <= midPoint).length;
+        const pLeft = countLeft / n;
+        const h1 = pLeft / (midPoint - min);
+        const h2 = (1 - pLeft) / (max - midPoint);
+        estParamsText = `Split Point = ${midPoint.toFixed(2)} | Step-1 Height = ${h1.toFixed(3)} | Step-2 Height = ${h2.toFixed(3)}`;
+        fittedPdfFunc = (x) => {
+            if (x >= min && x <= midPoint) return h1;
+            if (x > midPoint && x <= max) return h2;
+            return 0;
+        };
+        aiInterpretation = `Dual-interval uniform segments separate at data midpoint (${midPoint.toFixed(2)}). Highly reactive for tracking sharp asymmetric categorical step changes.`;
+    } 
+    else if (model === 'normal') {
+        estParamsText = `Mean (μ) = ${mean.toFixed(2)} | Std Dev (σ) = ${stdev.toFixed(2)}`;
+        fittedPdfFunc = (x) => jStat.normal.pdf(x, mean, stdev);
+        aiInterpretation = `Normal distribution calculated with standard parameters. If data follows a classic symmetric bell curve configuration, this model provides excellent accurate predictive forecasting capabilities.`;
+    }
+
+    const binCount = Math.min(10, Math.ceil(Math.sqrt(n)));
+    const binWidth = (max - min) / binCount;
+    const bins = Array(binCount).fill(0);
+    
+    rawData.forEach(val => {
+        let index = Math.floor((val - min) / binWidth);
+        if (index >= binCount) index = binCount - 1;
+        bins[index]++;
+    });
+
+    const binDensities = bins.map(count => count / (n * binWidth));
+
+    const fitGraphPoints = [];
+    const histGraphPoints = [];
+    const graphMin = min - (max - min) * 0.1;
+    const graphMax = max + (max - min) * 0.1;
+    const chartSteps = 100;
+
+    for (let i = 0; i <= chartSteps; i++) {
+        const curX = graphMin + (i * (graphMax - graphMin) / chartSteps);
+        fitGraphPoints.push({ x: curX, y: fittedPdfFunc(curX) });
+        
+        let activeDensity = 0;
+        if (curX >= min && curX <= max) {
+            let bIdx = Math.floor((curX - min) / binWidth);
+            if (bIdx >= binCount) bIdx = binCount - 1;
+            activeDensity = binDensities[bIdx];
+        }
+        histGraphPoints.push({ x: curX, y: activeDensity });
+    }
+
+    document.getElementById('fit-results').classList.remove('hidden');
+    document.getElementById('fit-params').innerText = estParamsText;
+    document.getElementById('fit-interpretation').innerText = aiInterpretation;
+
+    if (fitChart) fitChart.destroy();
+    const ctxFit = document.getElementById('fitChart').getContext('2d');
+    fitChart = new Chart(ctxFit, {
+        type: 'line',
+        data: {
+            datasets: [
+                {
+                    label: 'Fitted Analytical PDF',
+                    data: fitGraphPoints,
+                    borderColor: '#ec4899',
+                    borderWidth: 3,
+                    pointRadius: 0,
+                    fill: false,
+                    order: 1
+                },
+                {
+                    label: 'Empirical Data Histogram',
+                    data: histGraphPoints,
+                    borderColor: 'rgba(59, 130, 246, 0.5)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.35)',
+                    borderWidth: 1,
+                    pointRadius: 0,
+                    fill: true,
+                    stepped: true,
+                    order: 2
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: { type: 'linear', position: 'bottom', grid: { color: '#374151' } },
+                y: { beginAtZero: true, grid: { color: '#374151' } }
+            },
+            plugins: {
+                legend: { position: 'top', labels: { color: '#d1d5db', font: { size: 10 } } }
+            }
+        }
+    });
+});
+
+// Bootstrap App Init Defaults
+renderInputs();  
+        
+    </script>
+</body>
+</html>
